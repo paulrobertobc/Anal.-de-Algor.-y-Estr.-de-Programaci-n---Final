@@ -3,12 +3,65 @@ from dataclasses import dataclass
 from heapq import heappush, heappop, heapify
 from math import inf
 from time import perf_counter
+from typing import Optional
 
-PRIORIDADES = {
-    "emergencia": 1000,
-    "urgente": 100,
-    "leve": 10
-}
+PRIORIDADES = {"emergencia": 1000, "urgente": 100, "leve": 10}
+ESPECIALIDADES = ("cardiologia", "pediatria", "traumatologia", "medicina general")
+
+def hora_a_minutos(hora: str) -> int: #recibe un string y devuele un entero
+    try:
+        h, m = map(int, hora.split(":")) #con split vamos a cortar ese string en dos partes. despues con el map le decimos que cada parte sera un int
+    except (ValueError, AttributeError):
+        raise ValueError("La hora debe tener formato HH:MM, por ejemplo 08:00.")
+    if not (0 <= h <= 23 and 0 <= m <= 59): #evaluamos si h entra dentro del rango 24 (porquw son las horas) y m entra en el rango de 59 (porque son los minutos)
+        raise ValueError("La hora debe estar entre 00:00 y 23:59.")
+    return h * 60 + m #al final devuelve el calculo con los minutos finales
+
+def minutos_a_hora(minutos: int) -> str: #recibe un int y devuelve un string
+    minutos = minutos % (24 * 60) # dividimos los minutos entre 24 * 60 (que es 1440, los minutos totales de un dia) para mantenernos en el rango de un dia
+    return f"{minutos // 60:02d}:{minutos % 60:02d}" #devolvemos las horas con la division entera. delvolvemos los minutos restantes usando el modulo (%)
+
+@dataclass
+class Turno:
+    hora_inicio: str
+    hora_fin: str
+
+    def __post_init__(self):
+        inicio = hora_a_minutos(self.hora_inicio)
+        fin = hora_a_minutos(self.hora_fin)
+        if fin == inicio:
+            raise ValueError("El inicio y el fin del turno no pueden ser iguales.")
+
+    @property
+    def inicio(self):
+        return hora_a_minutos(self.hora_inicio)
+
+    @property
+    def fin(self):
+        return hora_a_minutos(self.hora_fin)
+
+    @property
+    def fin_relativo(self):
+        """Fin del turno en la misma jornada; suma 24 h si cruza medianoche."""
+        fin = self.fin
+        return fin + 24 * 60 if fin < self.inicio else fin
+
+@dataclass
+class Medico:
+    Id: int
+    Nombre: str
+    Especialidad: str
+    Turno: Turno
+    estado: str = "Fuera de turno"
+    consultorio_id: Optional[int] = None
+    ocupado_hasta: int = -1
+    extension: bool = False
+    fin_turno_asignado: int = -1
+
+@dataclass
+class Consultorio:
+    Id: int
+    ocupado_por: Optional[int] = None
 
 @dataclass
 class Paciente:
