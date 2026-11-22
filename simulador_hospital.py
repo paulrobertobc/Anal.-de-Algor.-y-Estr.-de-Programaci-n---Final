@@ -20,6 +20,7 @@ def minutos_a_hora(minutos: int) -> str: #recibe un int y devuelve un string
     minutos = minutos % (24 * 60) # dividimos los minutos entre 24 * 60 (que es 1440, los minutos totales de un dia) para mantenernos en el rango de un dia
     return f"{minutos // 60:02d}:{minutos % 60:02d}" #devolvemos las horas con la division entera. delvolvemos los minutos restantes usando el modulo (%)
 
+# cambio
 
 @dataclass
 class Turno:
