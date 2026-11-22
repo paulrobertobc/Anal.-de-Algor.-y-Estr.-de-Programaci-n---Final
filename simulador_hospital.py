@@ -543,7 +543,7 @@ class Hospital:
             consultorio = p.consultorio_id if p.consultorio_id is not None else "-"
             print(f"#{p.Id} {p.Nombre:18} | {p.Especialidad:20} | {p.estado:12} | Médico: {medico:15} | Consultorio: {consultorio} | Espera: {p.espera if p.inicio >= 0 else '-'}")
 
-
+#Cristopher C. "Estuvo aqui"
 def datos_demostracion(hospital): #pacientes ejemplo para dar una demostracion
     datos = [ 
         #los numeros enteros que representan la llegada son los minutos desde que empezo la jornada
