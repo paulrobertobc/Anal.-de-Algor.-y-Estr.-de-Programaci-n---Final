@@ -63,6 +63,7 @@ class Consultorio:
     Id: int
     ocupado_por: Optional[int] = None
 
+# Almacena los datos y el seguimiento de cada paciente.
 @dataclass
 class Paciente:
     Id: int
