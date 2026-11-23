@@ -386,19 +386,26 @@ class Hospital:
             print("Registra al menos un médico antes de iniciar la simulación.")
             return
         self.ejecutado = True
-        llegadas = []
-        for p in self.pacientes:
-            heappush(llegadas, (p.Llegada, p.Id, p))
-        espera = []
-        activos = []  # (fin, paciente, médico, consultorio)
-        self.tiempo = 0
+        llegadas = [] #crea una lista vacia para almacenar las llegadas de los pacientes
+
+        for p in self.pacientes: #evaluamos cada paciente registrado en el hospital
+            heappush(llegadas, (p.Llegada, p.Id, p)) #con heappush insertamos en la lista llegadas una tupla con la llegada del paciente, su id y el objeto paciente
+        
+        espera = [] #crea una lista vacia para almacenar los pacientes que estan en espera
+        activos = []  # crea una lista vacia para almacenar los pacientes que estan siendo atendidos
+        self.tiempo = 0 #inicializa el tiempo de simulacion en 0, que representa el inicio de la jornada hospitalaria
+        
         print("\n" + "INICIO DE LA SIMULACIÓN".center(100, "-") + "\n")
 
-        while llegadas or espera or activos:
+        while llegadas or espera or activos: #iniciamos un bucle que se ejecuta mientras haya llegadas, pacientes en espera o pacientes activos
             # primero finalizar atenciones cuyo tiempo ya termino
-            terminados = [a for a in activos if a[0] <= self.tiempo]
-            for fin, p, medico, consultorio in terminados:
-                p.fin = fin
+            
+            terminados = [a for a in activos if a[0] <= self.tiempo] #aquí filtramos los pacientes activos que han terminado su atención, 
+            #es decir, aquellos cuyo tiempo de finalización es menor o igual al tiempo actual de simulación
+            
+            for fin, p, medico, consultorio in terminados: #evaluamos cada paciente que ha terminado su atención y obtenemos su tiempo de finalización, el 
+                #objeto paciente, el médico que lo atendió y el consultorio utilizado
+                p.fin = fin 
                 p.estado = "Atendido"
                 medico.estado = "Disponible" if self.intervalo_turno_actual(medico, self.tiempo) else "Fuera de turno"
                 medico.consultorio_id = None
@@ -406,26 +413,39 @@ class Hospital:
                 extra = " (turno extendido por emergencia)" if medico.extension else ""
                 medico.extension = False
                 medico.fin_turno_asignado = -1
-                consultorio.ocupado_por = None
+                consultorio.ocupado_por = None 
                 print(f"[{self.hora_actual(fin)}] Finaliza {p.Nombre} con Dr./Dra. {medico.Nombre}, consultorio {consultorio.Id}{extra}.")
-            activos = [a for a in activos if a[0] > self.tiempo]
+            
+            activos = [a for a in activos if a[0] > self.tiempo] #actualizamos la lista de pacientes activos eliminando aquellos que han terminado su atención
 
             # segundo, registrar todas las llegadas del instante
-            while llegadas and llegadas[0][0] <= self.tiempo:
-                _, _, p = heappop(llegadas)
+            while llegadas and llegadas[0][0] <= self.tiempo: #mientras haya llegadas pendientes y la llegada del primer paciente en la lista sea menor o igual 
+                #al tiempo actual de simulación
+                _, _, p = heappop(llegadas) #con heappop extraemos la llegada del primer paciente de la lista y obtenemos el objeto paciente
                 p.estado = "En espera"
-                heappush(espera, (-p.puntuacion, p.Llegada, p.Id, p))
+                
+                heappush(espera, (-p.puntuacion, p.Llegada, p.Id, p)) #con heappush insertamos en la lista de espera una tupla con la puntuación 
+                #negativa del paciente, su llegada, su id y el objeto paciente
+                
                 print(f"[{self.hora_actual()}] Llega {p.Nombre}: {p.Prioridad.upper()} | requiere {p.Especialidad}.")
 
-            self.actualizar_estados_medicos()
-            espera = [(-p.puntuacion, p.Llegada, p.Id, p) for _, _, _, p in espera]
-            heapify(espera)
-            candidatos = [item[3] for item in espera]
-            disponibles, mapa_elegibles = self.medicos_elegibles(candidatos)
-            camas_libres, diagnosticos_libres, consultorios_libres = self.recursos_libres(activos)
+            self.actualizar_estados_medicos() #actualizamos el estado de los médicos disponibles según el tiempo actual de simulación
+            
+            espera = [(-p.puntuacion, p.Llegada, p.Id, p) for _, _, _, p in espera] #actualizamos la lista de espera con las puntuaciones negativas, 
+            #llegadas, ids y objetos pacientes
+            
+            heapify(espera) #con heapify convertimos la lista de espera en una estructura de montículo (heap) para mantener el orden de prioridad
+            candidatos = [item[3] for item in espera] #creamos una lista de candidatos a ser atendidos, extrayendo los objetos pacientes de la lista de espera
+            
+            disponibles, mapa_elegibles = self.medicos_elegibles(candidatos) #obtenemos la lista de médicos disponibles y un mapa de 
+            #médicos elegibles para cada paciente candidato
+            
+            camas_libres, diagnosticos_libres, consultorios_libres = self.recursos_libres(activos) #obtenemos la cantidad de camas libres, equipos de diagnóstico
+            #libres y consultorios libres según los pacientes activos para el tiempo actual de simulación
 
-            if candidatos and disponibles and consultorios_libres > 0:
-                if escoger_algoritmo == 1:
+            if candidatos and disponibles and consultorios_libres > 0: #evaluamos si hay candidatos, médicos disponibles y consultorios libres para asignar pacientes
+                if escoger_algoritmo == 1: #evaluamos el algoritmo seleccionado por el usuario, si es 1 se utiliza programación dinámica, si es 2 se utiliza divide y vencerás
+                    #y se optimiza la asignación de pacientes a médicos y consultorios
                     asignaciones, _ = optimizar_programacion_dinamica(
                         candidatos, mapa_elegibles, camas_libres, diagnosticos_libres,
                         consultorios_libres, self.tiempo)
@@ -434,61 +454,110 @@ class Hospital:
                         candidatos, mapa_elegibles, camas_libres, diagnosticos_libres,
                         consultorios_libres, self.tiempo)
 
-                if asignaciones:
-                    elegidos = {candidatos[i].Id for i, _ in asignaciones}
-                    espera = [item for item in espera if item[3].Id not in elegidos]
-                    heapify(espera)
-                    for indice_paciente, indice_medico in asignaciones:
+                if asignaciones: #si hay asignaciones válidas, se procede a asignar pacientes a médicos y consultorios
+                    
+                    elegidos = {candidatos[i].Id for i, _ in asignaciones} #creamos un conjunto de ids de pacientes elegidos para ser atendidos
+                    
+                    espera = [item for item in espera if item[3].Id not in elegidos] #actualizamos la lista de espera eliminando a los pacientes que han sido asignados
+                    
+                    heapify(espera) #con heapify convertimos nuevamente la lista de espera en una estructura de montículo (heap) para mantener el orden de prioridad
+                    
+                    for indice_paciente, indice_medico in asignaciones: #evaluamos cada asignación de paciente a médico y obtenemos los índices correspondientes
                         p = candidatos[indice_paciente]
+                        
                         medico = disponibles[indice_medico]
-                        consultorio = self.consultorio_libre()
-                        if consultorio is None:
+                        consultorio = self.consultorio_libre() #obtenemos un consultorio libre para asignar al paciente y al médico
+                        
+                        if consultorio is None: #si no hay consultorio libre, se vuelve a insertar el paciente en la lista de espera con una puntuación 
+                            #negativa para mantener el orden de prioridad
                             # protección adicional, normalmente no ocurre por la restriccion del algoritmo
-                            heappush(espera, (-p.puntuacion, p.Llegada, p.Id, p))
-                            continue
-                        self.asignar_consultorio(medico, p)
-                        p.inicio = self.tiempo
-                        p.fin = self.tiempo + p.Duracion
+                            heappush(espera, (-p.puntuacion, p.Llegada, p.Id, p)) #con heappush insertamos nuevamente al paciente en la lista de espera
+                            continue #le damos continue para volver al inicio del bucle y procesar la siguiente asignación
+                        
+                        self.asignar_consultorio(medico, p) #asignamos el consultorio al médico y al paciente, actualizando sus estados y atributos correspondientes
+                        p.inicio = self.tiempo #actualizamos el tiempo de inicio de atención del paciente con el tiempo actual de simulación
+                        p.fin = self.tiempo + p.Duracion #actualizamos el tiempo de finalización de atención del paciente sumando la duración de la atención al tiempo 
+                        #actual de simulación
                         p.espera = p.inicio - p.Llegada
-                        p.estado = "En atención"
+                        p.estado = "En atención" 
                         medico.ocupado_hasta = p.fin
-                        intervalo = self.intervalo_turno_actual(medico, self.tiempo)
-                        fin_turno = intervalo[1] if intervalo else self.tiempo
+                        
+                        intervalo = self.intervalo_turno_actual(medico, self.tiempo) #obtenemos el intervalo de turno actual del médico para determinar si su 
+                        #turno se extiende más allá del tiempo de finalización de atención del paciente
+                        
+                        fin_turno = intervalo[1] if intervalo else self.tiempo #si no hay intervalo de turno actual, se considera que el turno del médico 
+                        #termina en el tiempo actual de simulación
+                        
                         medico.fin_turno_asignado = fin_turno
                         medico.extension = p.fin > fin_turno
-                        if medico.extension:
-                            print(f"[{self.hora_actual()}] AVISO: Dr./Dra. {medico.Nombre} extenderá su turno para terminar esta emergencia.")
-                        activos.append((p.fin, p, medico, consultorio))
+                        
+                        if medico.extension: #si el tiempo de finalización de atención del paciente es mayor que el tiempo de finalización del
+                            # turno del médico, se imprime un aviso indicando que el médico extenderá su turno para atender la emergencia
+                            print(f"[{self.hora_actual()}] AVISO: Dr./Dra. {medico.Nombre} extenderá su turno para terminar esta emergencia.") #imprimosm
+                        
+                        activos.append((p.fin, p, medico, consultorio)) #agregamos el paciente, el médico y el consultorio a la lista de pacientes activos, indicando 
+                        #el tiempo de finalización de atención del paciente
+                        
                         print(f"[{self.hora_actual()}] Inicia {p.Nombre} con Dr. (a) {medico.Nombre} ({p.Especialidad.title()}) en consultorio {consultorio.Id}; termina {self.hora_actual(p.fin)}.")
-                    continue
+                    
+                    continue #con continue volvemos al inicio del bucle para procesar el siguiente evento de simulación
 
-            espera_pacientes = [item[3] for item in espera]
-            trasladados_o_espera = self.trasladar_sin_cobertura(espera_pacientes, activos)
-            ids_restantes = {p.Id for p in trasladados_o_espera}
-            espera = [item for item in espera if item[3].Id in ids_restantes]
-            heapify(espera)
+            espera_pacientes = [item[3] for item in espera] #si no hay asignaciones válidas, se evalúa la lista de pacientes en espera y se 
+            #verifica si alguno de ellos no puede ser atendido por falta de cobertura médica
+            
+            trasladados_o_espera = self.trasladar_sin_cobertura(espera_pacientes, activos) #se llama a la función trasladar_sin_cobertura para determinar qué 
+            #pacientes deben ser trasladados a otro hospital por falta de cobertura médica
+            
+            ids_restantes = {p.Id for p in trasladados_o_espera} #se crea un conjunto de ids de pacientes que aún pueden esperar a ser atendidos
+            
+            espera = [item for item in espera if item[3].Id in ids_restantes] #se actualiza la lista de espera eliminando a los pacientes que han sido 
+            #trasladados a otro hospital
+            
+            heapify(espera) #con heapify convertimos nuevamente la lista de espera en una estructura de montículo (heap) para mantener el orden de prioridad
             # tercero, avanzar al proximo evento, que es llegada, fin de atención o inicio de turno
-            proximos = []
-            if llegadas:
+            
+            proximos = [] #creamos una lista vacía para almacenar los tiempos de los próximos eventos que pueden ocurrir en la simulación
+            
+            if llegadas: #si hay pacientes pendientes de llegada, se agrega el tiempo de llegada del primer paciente en la lista de llegadas a la lista de próximos eventos
                 proximos.append(llegadas[0][0])
-            if activos:
+            
+            if activos: #si hay pacientes activos, se agrega el tiempo de finalización de atención del primer paciente en la lista de activos a la lista de próximos eventos
                 proximos.append(min(a[0] for a in activos))
-            for m in self.medicos:
-                if m.estado == "Atendiendo":
+            
+            for m in self.medicos: #se evalúa cada médico registrado en el hospital para determinar si hay algún evento relacionado con su turno que pueda 
+                #ocurrir en la simulación
+                if m.estado == "Atendiendo": #si el médico está atendiendo a un paciente, se omite la evaluación de su turno y se pasa al siguiente médico
                     continue
-                inicio_siguiente = self.proximo_inicio_turno(m, self.tiempo)
-                if inicio_siguiente > self.tiempo:
-                    proximos.append(inicio_siguiente)
-                intervalo = self.intervalo_turno_actual(m, self.tiempo)
-                if intervalo and intervalo[1] > self.tiempo:
-                    proximos.append(intervalo[1])
-            proximos = [t for t in proximos if t > self.tiempo]
-            if not proximos:
+                
+                inicio_siguiente = self.proximo_inicio_turno(m, self.tiempo) #se obtiene el tiempo de inicio del siguiente turno del médico, expresado en
+                #minutos relativos al inicio de la simulación
+                
+                if inicio_siguiente > self.tiempo: #si el tiempo de inicio del siguiente turno del médico es mayor que el tiempo actual de simulación, se agrega 
+                    #a la lista de próximos eventos
+                    proximos.append(inicio_siguiente) #agregamos el tiempo de inicio del siguiente turno del médico a la lista de próximos eventos
+                
+                intervalo = self.intervalo_turno_actual(m, self.tiempo) #se obtiene el intervalo de turno actual del médico para determinar si su turno se extiende más 
+                #allá del tiempo actual de simulación
+                
+                if intervalo and intervalo[1] > self.tiempo: #si el médico tiene un turno activo y su tiempo de finalización es mayor que el tiempo actual de 
+                    #simulación, se agrega a la lista de próximos eventos
+                    
+                    proximos.append(intervalo[1]) #agregamos el tiempo de finalización del turno actual del médico a la lista de próximos eventos
+            
+            proximos = [t for t in proximos if t > self.tiempo] #se filtra la lista de próximos eventos para eliminar aquellos que ya han ocurrido o que son 
+            #menores o iguales al tiempo actual de simulación
+            
+            if not proximos: #si la lista de próximos eventos está vacía, significa que no hay más eventos que puedan ocurrir en la simulación, por lo que se finaliza la
+                #simulación
+
                 # no quedan eventos que puedan liberar recursos o incorporar medicos.
-                for _, _, _, p in espera:
-                    p.estado = "Sin atención"
+                for _, _, _, p in espera: #por cada paciente que aún está en espera, se actualiza su estado a "Sin atención" y se imprime un mensaje indicando que 
+                    #no fue posible atenderlo, con _ como variable de descarte para los valores que no se utilizan
+                    
+                    p.estado = "Sin atención" #actualizamos el estado del paciente a "Sin atención" para indicar que no fue posible atenderlo en la simulación
                     print(f"[{self.hora_actual()}] No fue posible atender a {p.Nombre}; queda sin atención en esta simulación.")
-                espera.clear()
+                
+                espera.clear() #limpiamos la lista de espera para indicar que no hay más pacientes pendientes de atención
                 break
             self.tiempo = min(proximos)
 
