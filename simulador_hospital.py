@@ -5,7 +5,7 @@ from time import perf_counter
 from typing import Optional
 
 PRIORIDADES = {"emergencia": 1000, "urgente": 100, "leve": 10}
-ESPECIALIDADES = ("cardiologia", "pediatria", "traumatologia", "medicina general")
+ESPECIALIDADES = ("cardiologia", "pediatria", "traumatologia", "medicina general", "obstetricia", "cirugia",)
 
 def hora_a_minutos(hora: str) -> int: #recibe un string y devuele un entero
     try:
@@ -19,7 +19,6 @@ def hora_a_minutos(hora: str) -> int: #recibe un string y devuele un entero
 def minutos_a_hora(minutos: int) -> str: #recibe un int y devuelve un string
     minutos = minutos % (24 * 60) # dividimos los minutos entre 24 * 60 (que es 1440, los minutos totales de un dia) para mantenernos en el rango de un dia
     return f"{minutos // 60:02d}:{minutos % 60:02d}" #devolvemos las horas con la division entera. delvolvemos los minutos restantes usando el modulo (%)
-
 
 @dataclass
 class Turno:
@@ -214,19 +213,19 @@ class Hospital:
         self.tiempo = 0
         self.inicio_jornada = None  # se fija con el primer médico registrado.
         self.ejecutado = False
-        datosMedicos = [
-            ("Ramírez", "cardiologia", "08:00", "14:00"),#turno mañana
-            ("Torres", "pediatria", "08:00", "16:00"),
-            ("Vargas", "medicina general", "08:00", "14:00"),
-            ("García", "traumatologia", "06:00", "14:00"),
-            ("Mendoza", "traumatologia", "14:00", "20:00"), #turno tarde
-            ("Castillo", "cardiologia", "14:00", "20:00"),
-            ("Salas", "medicina general", "14:00", "20:00"),
-            ("Vega", "pediatria", "14:00", "22:00"),
-            ("Paredes", "cardiologia", "22:00", "06:00"),#turno noche
-            ("León", "pediatria", "22:00", "06:00"),
-            ("Rojas", "traumatologia", "22:00", "06:00"),
-            ("Huamán", "medicina general", "22:00", "06:00")
+        datosMedicos = [# ("cardiologia", "pediatria", "traumatologia", "medicina general", "obstetricia", "cirugia",)
+            ("Victor Caballero", "cardiologia", "08:00", "20:00"),#turno mañana
+            ("Mayra Torres", "pediatria", "08:00", "20:00"),
+            ("John Vargas", "medicina general", "08:00", "20:00"),
+            ("Gbariel Salazar", "cirugia", "08:30", "20:30"),
+            ("Pedro Mendoza", "traumatologia", "08:40", "20:50"),
+            ("Paula Jaramillo", "pediatria", "20:00", "08:00"),#turno noche
+            ("Lucia Lozano", "obstetricia", "20:30", "08:30"),
+            ("Leandro Paredes", "cardiologia", "20:00", "08:00"),
+            ("Victoria Rojas", "traumatologia", "20:00", "08:00"),
+            ("Mercedes Cabrera", "medicina general", "20:00", "08:00"),
+            ("Paul Cardenas", "cirugia", "20:30", "08:30"),
+            ("Ester Campos", "obstetricia", "20:30", "08:30")
         ]
         for m in datosMedicos:
             self.registrar_medico(*m)
@@ -264,7 +263,6 @@ class Hospital:
         p = Paciente(self.siguiente_id, nombre.strip(), llegada, duracion, prioridad,especialidad, necesita_cama, necesita_diagnostico)
         self.pacientes.append(p)
         self.siguiente_id += 1
-        print(f"Paciente {p.Id} registrado: {p.Nombre} | "f"llegada: {self.hora_actual(p.Llegada)} | "f"{p.Prioridad} | {p.Especialidad}")
         return p
 
     def hora_actual(self, tiempo=None):
@@ -555,34 +553,78 @@ def datos_demostracion(hospital): #pacientes ejemplo para dar una demostracion
         #480	 => 02:00 p. m.
         #960	 => 10:00 p. m.
         #1080 => 12:00 a. m. (medianoche)
-        #formato de objeto tipo Paciente: nombre, llegada, duracion, prioridad, necesitaCama, necesitaDiagnostico
-        ("Paul", 5, 45, "emergencia", "cardiologia",True, False),
-        ("Efrain", 15, 90, "leve", "pediatria", False, False), 
-        ("Cristopher", 35, 35, "urgente", "traumatologia", False, True),
-        ("Jhonny Pacheco", 60, 120, "emergencia", "medicina general",False, True), 
-        ("Carlos Alcantara", 95, 60, "leve","cardiologia", True, False), 
-        ("Nicola", 130, 40, "urgente", "pediatria",False, False),
-        ("Mateo", 180, 150, "emergencia","cardiologia", True, False),
-        ("Lucia", 225, 35, "urgente", "medicina general",False, True), 
-        ("Rodrigo",270 , 75, "leve", "traumatologia",False, False),
-        ("Valeria", 315, 50, "emergencia","pediatria", True, True), 
-        ("Diego", 360, 180, "urgente", "cardiologia", True, False), 
-        ("Sofia", 420, 45, "leve", "medicina general",False,False),
-        ("Joaquin", 480, 90, "emergencia", "traumatologia",False, False),
-        ("Camila", 540, 60, "urgente", "cardiologia",False, False), 
-        ("Alejandro", 600, 120, "leve", "traumatologia",True, False),
-        ("Valentina", 660, 30, "urgente", "medicina general",False, True),
-        ("Renata", 720, 100, "emergencia", "pediatria",True, False),
-        ("Mauricio", 780, 45, "leve", "cardiologia",False, False), 
-        ("Fernando", 840, 150, "urgente", "traumatologia",True, True),
-        ("Mariana", 900, 60, "emergencia", "medicina general",False, True),
-        ("Gabriel", 960, 90, "leve", "cardiologia",False, False),
-        ("Lolo Fernandez", 1020, 40, "urgente", "traumatologia",True, True),
-        ("Michael J", 1080, 120, "urgente", "pediatria",True, True),
-        ("Bruno M", 1200, 75, "leve", "medicina general",False, False),
+        #formato de objeto tipo Paciente: nombre (string), llegada(entero que representa los minutos desde el inicio de jornada. guiarse de la guia de arriba), 
+        # duracion(minutos en entero), prioridad (string), necesitaCama (booleano), necesitaDiagnostico(booleano).
+        #especialidades: #("cardiologia", "pediatria", "traumatologia", "medicina general", "obstetricia", "cirugia",)
+        ("Paul", 5, 45, "emergencia", "cardiologia", True, False),
+        ("Efrain Aguilar", 15, 90, "leve", "pediatria", False, False),
+        ("Sebastian Lizarzaburu", 25, 80, "urgente", "cirugia", False, True),
+        ("Cris Soifer", 35, 35, "urgente", "traumatologia", False, True),
+        ("Jhonny Pacheco", 60, 120, "emergencia", "medicina general", False, True),
+        ("Carlos Alcantara", 95, 60, "leve", "cardiologia", True, False),
+        ("Isabella Merced", 105, 45, "leve", "obstetricia", False, False),
+        ("Nicola Porcella", 130, 40, "urgente", "pediatria", False, False),
+        ("Adrian Castillo", 140, 90, "urgente", "traumatologia", False, True),
+        ("Mariana López", 155, 90, "urgente", "cardiologia", False, True),
+        ("Mateo", 180, 150, "emergencia", "cardiologia", True, False),
+        ("Ricardo Mendoza", 180, 120, "emergencia", "medicina general", True, True),
+        ("Nicolas Flores", 195, 130, "emergencia", "cirugia", True, True),
+        ("Valentina Cruz", 200, 45, "leve", "obstetricia", False, False),
+        ("Lucia", 225, 35, "urgente", "medicina general", False, True),
+        ("Diego Herrera", 225, 80, "urgente", "traumatologia", False, True),
+        ("Camila Fernández", 240, 55, "leve", "obstetricia", False, False),
+        ("Rodrigo", 270, 75, "leve", "traumatologia", False, False),
+        ("Andrés Castillo", 270, 150, "emergencia", "cirugia", True, True),
+        ("Paola Jimenez", 285, 100, "urgente", "obstetricia", False, True),
+        ("Lucía Ramírez", 290, 40, "leve", "cardiologia", False, False),
+        ("Diego Ramirez", 305, 150, "emergencia", "traumatologia", True, True),
+        ("Valeria", 315, 50, "emergencia", "pediatria", True, True),
+        ("Daniela Morales", 330, 70, "urgente", "traumatologia", False, False),
+        ("Luciana Fuster", 340, 45, "leve", "cardiologia", False, False),
+        ("Diego", 360, 180, "urgente", "cardiologia", True, False),
+        ("Sebastián Flores", 360, 130, "emergencia", "cardiologia", True, True),
+        ("Esteban Navarro", 375, 85, "urgente", "pediatria", False, True),
+        ("Valeria Mazza", 395, 60, "leve", "traumatologia", False, False),
+        ("Joaquín Salazar", 405, 90, "urgente", "pediatria", False, True),
+        ("Sofia Franco", 420, 45, "leve", "obstetricia", False, False),
+        ("Gabriela Paredes", 420, 60, "leve", "medicina general", False, False),
+        ("Mateo Aguilar", 435, 120, "emergencia", "medicina general", True, True),
+        ("Martín Cabrera", 450, 140, "emergencia", "traumatologia", True, True),
+        ("Jorge Benavides", 470, 45, "leve", "cardiologia", False, False),
+        ("Joaquin", 480, 90, "emergencia", "traumatologia", False, False),
+        ("Fano Alonso", 495, 75, "urgente", "cirugia", False, True),
+        ("Alejandro Ruiz", 495, 110, "urgente", "cirugia", False, True),
+        ("Shirley Cherres", 540, 60, "urgente", "obstetricia", False, False),
+        ("Cristian Navarro", 540, 160, "emergencia", "traumatologia", True, True),
+        ("Isabella Torres", 570, 35, "urgente", "obstetricia", False, True),
+        ("Daniela Darcourt", 585, 65, "urgente", "cardiologia", False, True),
+        ("Alejandro", 600, 120, "leve", "traumatologia", True, False),
+        ("Alejandra Baigorria", 645, 55, "leve", "cardiologia", False, False),
+        ("Valentina", 660, 30, "urgente", "medicina general", False, True),
+        ("Javier Molina", 675, 100, "urgente", "pediatria", False, True),
+        ("Antonella Aservi", 705, 45, "leve", "traumatologia", False, False),
+        ("Renato Tapia", 720, 100, "emergencia", "pediatria", True, False),
+        ("Emilia Drago", 735, 160, "emergencia", "medicina general", True, True),
+        ("Mauricio Mesones", 780, 45, "leve", "cardiologia", False, False),
+        ("Facundo", 795, 115, "emergencia", "cirugia", True, True),
+        ("Brunella Horna", 825, 50, "leve", "obstetricia", False, False),
+        ("Fernanflo", 840, 150, "urgente", "traumatologia", True, True),
+        ("Julieta Castro", 885, 60, "leve", "traumatologia", False, False),
+        ("Mariana", 900, 60, "emergencia", "medicina general", False, True),
+        ("Andres Palacios", 915, 130, "emergencia", "traumatologia", True, True),
+        ("Milagros Soto", 945, 45, "leve", "cardiologia", False, False),
+        ("Shirley Arica", 960, 90, "leve", "cardiologia", False, False),
+        ("Benjamin Ponce", 975, 95, "urgente", "pediatria", False, True),
+        ("Ariana Grande", 1005, 55, "leve", "obstetricia", False, False),
+        ("Lolo Fernandez", 1020, 40, "urgente", "traumatologia", True, True),
+        ("Franco Cabrera", 1035, 150, "emergencia", "medicina general", True, True),
+        ("Michael J", 1080, 120, "urgente", "pediatria", True, True),
+        ("Cristian C", 1110, 120, "emergencia", "cirugia", True, True),
+        ("Bruno M", 1200, 75, "leve", "medicina general", False, False)
     ]
     for d in datos:
         hospital.registrar_paciente(*d)
+    return len(datos)
 
 def leer_numero(mensaje, minimo=0):
     while True:
@@ -607,14 +649,14 @@ def leer_booleano(mensaje):
 def leer_prioridad():
     opciones = {"1": "emergencia", "2": "urgente", "3": "leve"}
     while True:
-        entrada = input("Prioridad => [1] Emergencia | [2] Urgente | [3] Leve : ").strip()
+        entrada = input("* Prioridad => [1] Emergencia | [2] Urgente | [3] Leve : ").strip()
         if entrada in opciones:
             return opciones[entrada]
         print("Ingresa un número del 1 al 3.")
 
-def leer_especialidad():
-    print("Especialidad => [1] Cardiología [2] Pediatría [3] Traumatología [4] Medicina general : ")
-    opciones = {"1": "cardiologia", "2": "pediatria", "3": "traumatologia", "4": "medicina general"}
+def leer_especialidad():#("cardiologia", "pediatria", "traumatologia", "medicina general", "obstetricia", "cirugia",)
+    print("* Especialidad\n[1] Cardiología     [2] Pediatría\n[3] Traumatología   [4] Medicina general\n[5] Obstetricia     [6] Cirugía")
+    opciones = {"1": "cardiologia", "2": "pediatria", "3": "traumatologia", "4": "medicina general", "5": "obstetricia", "6": "cirugia"}
     while True:
         entrada = input("Selecciona: ").strip()
         if entrada in opciones:
@@ -622,7 +664,7 @@ def leer_especialidad():
         print("Opción inválida.")
 
 def menu():
-    hospital = Hospital(camas=8, diagnosticos=7, cantidad_consultorios=10)
+    hospital = Hospital(camas=14, diagnosticos=10, cantidad_consultorios=15)
     while True:
         print("\n" + "SISTENA DE COLA DE ATENCION HOSPITALARIA".center(80, "*") )
         print(f"| Médicos: {hospital.total_medicos} / Consultorios: {len(hospital.consultorios)} / Camas: {hospital.total_camas} / Diagnósticos: {hospital.total_diagnosticos}\n|")
@@ -636,25 +678,28 @@ def menu():
             if hospital.ejecutado:
                 print("La simulación ya fue procesada. Reiníciala antes de registrar más pacientes.")
             else:
-                nombre = input("Nombre del paciente: ").strip()
+                subprocess.run("cls", shell=True)
+                print("REGISTRAR PACIENTE")
+                nombre = input("* Nombre del paciente: ").strip()
                 if not nombre:
                     print("El nombre no puede estar vacío.")
                     continue
                 while True:
-                    hora_llegada = input("Hora de llegada del paciente (HH:MM, formato 24 horas): ").strip()
+                    hora_llegada = input("* Hora de llegada del paciente (HH:MM, formato 24 horas): ").strip()
                     try:
                         llegada = hospital.convertir_hora_llegada(hora_llegada)
                         break
                     except ValueError as error:
                         print("Hora inválida:", error)
-                #llegada = leer_numero(f"Minutos después del inicio de jornada ({hospital.hora_actual(0)}): ")
-                duracion = leer_numero("Duración estimada de atención (minutos): ", 1)
+                duracion = leer_numero("* Duración estimada de atención (minutos): ", 1)
                 prioridad = leer_prioridad()
-                especialidad = leer_especialidad()
-                cama = leer_booleano("¿Necesita cama? (S/N): ")
-                diagnostico = leer_booleano("¿Necesita diagnóstico? (S/N): ")
+                esp = leer_especialidad()
+                cama = leer_booleano("* ¿Necesita cama? (S/N): ")
+                diag = leer_booleano("* ¿Necesita diagnóstico? (S/N): ")
                 try:
-                    hospital.registrar_paciente(nombre, llegada, duracion, prioridad, especialidad, cama, diagnostico)
+                    hospital.registrar_paciente(nombre, llegada, duracion, prioridad, esp, cama, diag)
+                    print("¡Paciente registrado! :")
+                    print(f"Nombre: {nombre} | Llegada: {hora_llegada} | Duracion: {duracion} minutos | Prioridad: {prioridad} | Especialidad: {esp} | Cama: {cama} | Diagnostico: {diag}")
                 except ValueError as error:
                     print("Error:", error)
 
@@ -662,6 +707,8 @@ def menu():
             if hospital.ejecutado:
                 print("Reinicia la simulación antes de modificar la plantilla médica.")
                 continue
+            subprocess.run("cls", shell=True)
+            print("REGISTRAR MEDICO")
             nombre_medico = input("Nombre del médico: ").strip()
             especialidad_medico = leer_especialidad()
             hora_inicio = input("Hora de inicio (HH:MM): ").strip()
@@ -679,13 +726,21 @@ def menu():
                 print("Reinicia la simulación antes de ejecutarla nuevamente.")
                 continue
             #comparación inicial con todos los pacientes que llegan al minuto cero
+            subprocess.run("cls", shell=True)
+            print("Simulacion")
             candidatos = [p for p in hospital.pacientes if p.Llegada == 0]
             disponibles, mapa = hospital.medicos_elegibles(candidatos)
             comparar_algoritmos(candidatos, mapa, hospital.total_camas, hospital.total_diagnosticos,min(len(hospital.consultorios), len(disponibles)), 0)
-            print("\n" + ("PROGRAMACIÓN DINÁMICA" if opcion == "2" else "DIVIDE Y VENCERÁS").center(100, "/"))
-            hospital.simular(1 if opcion == "2" else 2)
+
+            print("\n" + "DEMOSTRACIÓN CON PROGRAMACIÓN DINÁMICA".center(100, "/"))
+            hospital.simular(1)
+            hospital.reiniciar()
+            print("\n" + "DEMOSTRACIÓN CON DIVIDE Y VENCERÁS".center(100, "/"))
+            hospital.simular(2)
+            print(f"\n{"DEMOSTRACION FINALIZADA".center(120,"*")}\n")
 
         elif opcion == "4":
+            subprocess.run("cls", shell=True)
             hospital.mostrar_medicos()
             print("\nCONSULTORIOS:")
             for c in hospital.consultorios:
@@ -696,9 +751,11 @@ def menu():
             hospital.reiniciar()
 
         elif opcion == "d" or opcion == "D":
-            hospitalDemostracion = Hospital(camas=5, diagnosticos=3, cantidad_consultorios=4)
-            print(f"\n{"DEMOSTRACION INICIADA".center(120,"*")}\n")
-            datos_demostracion(hospitalDemostracion)
+            subprocess.run("cls", shell=True)
+            hospitalDemostracion = Hospital(camas=12, diagnosticos=10, cantidad_consultorios=4)
+            cantidad_pacientes = datos_demostracion(hospitalDemostracion)
+            print(f"\n{"DEMOSTRACION INICIADA".center(120,"*")}\n" + 
+                  f"Medicos: {hospitalDemostracion.total_medicos} | Pacientes llegados: {cantidad_pacientes}| Camas: 10 | Diagnostiocos: 10 | Consultorios: 4")
             disponibles, mapa = hospitalDemostracion.medicos_elegibles(hospitalDemostracion.pacientes)
             comparar_algoritmos(hospitalDemostracion.pacientes, mapa, hospitalDemostracion.total_camas, hospitalDemostracion.total_diagnosticos,
                                 min(len(hospitalDemostracion.consultorios), len(disponibles)), 0)
@@ -722,4 +779,3 @@ def menu():
 
 if __name__ == "__main__":
     menu()
-#Comentario para probar
