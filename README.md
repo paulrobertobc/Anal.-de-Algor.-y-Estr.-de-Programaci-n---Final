@@ -1,1 +1,1 @@
-# Anal.-de-Algor.-y-Estr.-de-Programaci-n---Final
+# Análisis de Algoritmos y Estrategias de Programación - Final
